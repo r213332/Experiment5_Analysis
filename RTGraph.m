@@ -83,31 +83,33 @@ disp("MissRateのシャピロウィルク検定");
 disp(C_P);
 disp(N_P);
 disp(F_P);
-% クラスカルワリス検定
-figure;
-[subject_p,subject_tbl,subject_stats] = kruskalwallis(MissingRate, [], 'off');
-disp("MissRateのクラスカルワリス検定");
-disp(subject_p);
-% result = multcompare(subject_stats);
-medianMissRate = median(MissingRate);
-bar(medianMissRate);
-
-% % ANOVA
+% % クラスカルワリス検定
 % figure;
-% p = anova1(MissingRate);
-% meanMissRate = mean(MissingRate);
-% stdMissRate = std(MissingRate);
-% bar(meanMissRate);
-% hold on;
-% errorbar(meanMissRate, stdMissRate, 'k', 'linestyle', 'none');
+% [subject_p,subject_tbl,subject_stats] = kruskalwallis(MissingRate, [], 'off');
+% disp("MissRateのクラスカルワリス検定");
+% disp(subject_p);
+% % result = multcompare(subject_stats);
+% medianMissRate = median(MissingRate);
+% bar(medianMissRate);
 
-% set(gcf, 'Units', 'Normalized', 'OuterPosition', [0, 0, 1, 1]);
-% fontsize(gcf,24,'points')
-% ylim([0, 1.0]);
-% ylabel("見逃し率の平均");
-% xticklabels(["対照条件", "近接条件", "遠方条件"]);
+% ANOVA
+figure;
+p = anova1(MissingRate);
+meanMissRate = mean(MissingRate);
+stdMissRate = std(MissingRate);
+bar(meanMissRate);
+hold on;
+errorbar(meanMissRate, stdMissRate, 'k', 'linestyle', 'none');
+disp("MissRateのANOVA");
+disp(p);
 
-% saveas(gcf, fullfile('./graphs', 'PDT_RT_Miss_Graph.png'));
+set(gcf, 'Units', 'Normalized', 'OuterPosition', [0, 0, 1, 1]);
+fontsize(gcf,24,'points')
+ylim([0, 0.35]);
+ylabel("見逃し率の平均");
+xticklabels(["対照条件", "近接条件", "遠方条件"]);
+
+saveas(gcf, fullfile('./graphs', 'PDT_RT_Miss_Graph.png'));
 
 function sortedData = sortData(data)
     % subjects配列からnameプロパティの値を抽出
