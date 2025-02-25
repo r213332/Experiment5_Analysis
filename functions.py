@@ -220,6 +220,115 @@ def getGazeDistribution(data: pd.DataFrame):
     return returnData
 
 
+def extendedGetGazeDistribution(data: pd.DataFrame):
+    returnData = []
+    fixationDistance = 10
+    frontVector = np.array([0, 0, 1])
+    stimulusShowTime = 0
+    isStimulusShowed = False
+    for index in range(1, len(data)):
+        row = data.iloc[index]
+        flag = False
+        if row["ShowStimulus"] and not isStimulusShowed:
+            isStimulusShowed = True
+            stimulusShowTime = row["RealTime"]
+        if isStimulusShowed and (row["RealTime"] - stimulusShowTime) > 2.0:
+            flag = True
+        if row["GazeRay_IsValid"] == 1 and flag:
+            gazeOrigin = np.array(
+                [
+                    row["GazeRay_Origin_x"],
+                    row["GazeRay_Origin_y"],
+                    row["GazeRay_Origin_z"],
+                ]
+            )
+            gazeDirection = np.array(
+                [
+                    row["GazeRay_Direction_x"],
+                    row["GazeRay_Direction_y"],
+                    row["GazeRay_Direction_z"],
+                ]
+            )
+            prevGazeDirection = np.array(
+                [
+                    data.iloc[index - 1]["GazeRay_Direction_x"],
+                    data.iloc[index - 1]["GazeRay_Direction_y"],
+                    data.iloc[index - 1]["GazeRay_Direction_z"],
+                ]
+            )
+            # 視線の向きの角度
+            i = np.inner(gazeDirection, prevGazeDirection)
+            n = np.linalg.norm(gazeDirection) * np.linalg.norm(prevGazeDirection)
+            c = i / n
+            degree = np.rad2deg(np.arccos(np.clip(c, -1.0, 1.0)))
+            deltaTime = row["RealTime"] - data.iloc[index - 1]["RealTime"]
+            if deltaTime > 1.0:
+                GazeVelocity = None
+            else:
+                GazeVelocity = degree / (
+                    row["RealTime"] - data.iloc[index - 1]["RealTime"]
+                )
+            # 頭部の位置を含んだ視線ベクトルの取得
+            x_2 = (
+                row["GazeRay_Direction_x"] ** 2
+                + row["GazeRay_Direction_y"] ** 2
+                + row["GazeRay_Direction_z"] ** 2
+            )
+            x_1 = (
+                2 * row["GazeRay_Origin_x"] * row["GazeRay_Direction_x"]
+                + 2 * row["GazeRay_Origin_y"] * row["GazeRay_Direction_y"]
+                + 2 * row["GazeRay_Origin_z"] * row["GazeRay_Direction_z"]
+            )
+            x_0 = (
+                -1 * (fixationDistance**2)
+                + row["GazeRay_Origin_x"] ** 2
+                + row["GazeRay_Origin_y"] ** 2
+                + row["GazeRay_Origin_z"] ** 2
+            )
+            x = np.roots([x_2, x_1, x_0])
+            x = x[x >= 0]
+            calcuratedGazeDirection = np.array(
+                [
+                    row["GazeRay_Origin_x"] + x[0] * row["GazeRay_Direction_x"],
+                    row["GazeRay_Origin_y"] + x[0] * row["GazeRay_Direction_y"],
+                    row["GazeRay_Origin_z"] + x[0] * row["GazeRay_Direction_z"],
+                ]
+            )
+            # 視線ベクトルを注視点の座標に投影
+            # なす角を計算
+            i = np.inner(calcuratedGazeDirection, frontVector)
+            n = np.linalg.norm(calcuratedGazeDirection) * np.linalg.norm(frontVector)
+            c = i / n
+            angle = np.arccos(np.clip(c, -1.0, 1.0))
+            # tanを使用して投影
+            alpha = (
+                np.sqrt((np.tan(angle) * fixationDistance) ** 2 + fixationDistance**2)
+                / 10
+            )
+            # 座標
+            GazeDistribution = calcuratedGazeDirection * alpha
+            fixation = np.array(
+                [
+                    row["FixationPoint_x"],
+                    row["FixationPoint_y"],
+                    row["FixationPoint_z"],
+                ]
+            )
+            returnData.append(
+                {
+                    "GazeDistribution_x": GazeDistribution[0],
+                    "GazeDistribution_y": GazeDistribution[1],
+                    "Distancefromfixation": np.sqrt(
+                        (GazeDistribution[0] - fixation[0]) ** 2
+                        + (GazeDistribution[1] - fixation[1]) ** 2
+                    ),
+                    "GazeDegree": GazeVelocity,
+                }
+            )
+
+    return returnData
+
+
 def removeOutlier_GazeDistribution(data: list):
     # GazeDegreeの外れ値を除去
     #

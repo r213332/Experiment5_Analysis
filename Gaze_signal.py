@@ -29,13 +29,15 @@ def GazeDistribution(subject: str):
         nearData = data.query("mode == 1")
         farData = data.query("mode == 2")
 
-        control += functions.getGazeDistribution(controlData)
-        near += functions.getGazeDistribution(nearData)
-        far += functions.getGazeDistribution(farData)
+        control += functions.extendedGetGazeDistribution(controlData)
+        near += functions.extendedGetGazeDistribution(nearData)
+        far += functions.extendedGetGazeDistribution(farData)
 
     saccadics = []
+    plt.figure()
     for i, data in enumerate([control, near, far]):
         # dataがcontrol,near,farのいずれか取得
+        label = ["control", "near", "far"][i]
 
         x = [item["GazeDistribution_x"] for item in data]
         y = [item["GazeDistribution_y"] for item in data]
@@ -48,16 +50,16 @@ def GazeDistribution(subject: str):
 
         saccadic = [item for item in saccadic if item > 100]
 
-        saccadicCount = 0
-        for item in degree:
-            flag = True
-            dx = None
-            if item is not None and abs(item) > 100 and flag:
-                saccadicCount += 1
-                flag = False
-                dx = 1 if item > 0 else -1
-            if flag == False and dx is not None and item * dx < 0:
-                flag = True
+        saccadicCount = len(saccadic)
+        # for item in degree:
+        #     flag = True
+        #     dx = None
+        #     if item is not None and abs(item) > 100 and flag:
+        #         saccadicCount += 1
+        #         flag = False
+        #         dx = 1 if item > 0 else -1
+        #     if flag == False and dx is not None and item * dx < 0:
+        #         flag = True
 
         print("saccardic: ", saccadicCount)
         saccadics.append(saccadicCount)
@@ -73,9 +75,12 @@ def GazeDistribution(subject: str):
         #     )
         # )
         # 視線の散布図
-        plt.figure()
-        plt.scatter(x, y)
-        plt.axis("equal")
+        plt.scatter(x, y, label=label, s=20)
+        # plt.axis("equal")
+        # plt.title(label)
+        # plt.xlim(-6, 6)
+        # plt.ylim(-6, 6)
+        # plt.savefig(f"graphs/gaze_scatter_plot_{subject}_{label}.png")
         # # 差のヒストグラム
         # plt.hist(diff, bins=20)
 
@@ -85,7 +90,16 @@ def GazeDistribution(subject: str):
         # plt.xlabel("Index")
         # plt.ylabel("Gaze Degree")
         # plt.ylim(0, 400)
-    plt.show()
+    # plt.show()
+
+    plt.gca().set_aspect("equal", adjustable="box")
+    plt.title("Combined Gaze Scatter Plot")
+    plt.xlabel("X-axis")
+    plt.ylabel("Y-axis")
+    plt.legend()
+    plt.xlim(-6, 6)
+    plt.ylim(-6, 6)
+    plt.savefig(f"graphs/combined_gaze_scatter_plot_{subject}.png")
 
     # CSVに出力するためのデータフレームを作成
     # ディレクトリが存在しない場合のみ作成
